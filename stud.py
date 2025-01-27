@@ -1,3 +1,6 @@
+import eval7 as ev
+
+
 # Parent Class that defines basic logic of a Stud Poker game
 class StudGame():
 
@@ -103,13 +106,24 @@ class SevenCardStud(StudGame):
                 pass
             pot = sum(contribution)
             contribution = [0, 0]
+            # !! introduce logic for chopped pots (players have same hand)
             contribution[self.hand_evaluation(player_hands)] = pot
             return contribution
         
     
     def hand_evaluation(self, player_hands: list):
-        pass
-        # given an array of hands (array of arrays) return the index of the best hand (either 0 or 1)
+        if len(player_hands[0]) == 1:
+            pass
+            # !! update to check for suit
+        player_hands = [[ev.Card(card) for card in entry] for entry in player_hands]
+        player_hands = [ev.evaluate(hand) for hand in player_hands]
+        if player_hands[0] == player_hands[1]:
+            # !!TIE HAND, check for suit
+            return 2
+        elif player_hands[0] > player_hands[1]:
+            return 0
+        else:
+            return 1
 
 
 # Lowball variant of Stud
