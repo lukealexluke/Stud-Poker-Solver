@@ -124,15 +124,8 @@ class SevenCardStud(StudGame):
             return 0
         else:
             return 1
-
-
-# Lowball variant of Stud
-class Razz(StudGame):
-
-    def __init__(self):
-        super().__init__()
-
     
+        
 # Stud 8-or-Better (Split-Game)
 class StudHiLo(StudGame):
 
