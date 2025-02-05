@@ -1,4 +1,5 @@
 import eval7 as ev
+import copy as cop
 
 
 # Parent Class that defines basic logic of a Stud Poker game
@@ -68,7 +69,7 @@ class StudGame():
             if first != curr:
                 swaps += 1
             
-        return ((len(history) - swaps) % 2)
+        return ((len(history) - swaps) % 2) # !! subtract chance node
     
     # Determines the payoff at a terminal node
     def utility_function(self, history):
@@ -86,6 +87,33 @@ class SevenCardStud(StudGame):
         super().__init__()
         self.stack = [1000, 1000]
         self.betting_structure = [1,2,4,8] # Ante - BI - (CO/SB) - BB
+        self.card_dict = self.initialize_card_dict()
+
+    def initialize_card_dict(self):
+        ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A']
+        suits = ['c', 'd', 'h', 's']
+        
+        card_dict = {}
+        index = 1
+        for suit in suits:
+            for rank in ranks:
+                card_dict[index] = f"{rank}{suit}"
+                index += 1
+        return card_dict
+
+    def number_to_string(self, player_hands: list):
+
+        ret_hands = cop.deepcopy(player_hands)
+
+        for i, hand in enumerate(ret_hands):
+
+            for j, card in enumerate(hand):
+
+                card = self.card_dict[card]
+                ret_hands[i][j] = card
+
+        return ret_hands
+
     
     def utility_function(self, history: list, player_hands: list):
         if not self.is_terminal(self, history):
@@ -112,18 +140,21 @@ class SevenCardStud(StudGame):
         
     
     def hand_evaluation(self, player_hands: list):
-        if len(player_hands[0]) == 1:
-            pass
-            # !! update to check for suit
+        player_hands = self.number_to_string(player_hands)
         player_hands = [[ev.Card(card) for card in entry] for entry in player_hands]
-        player_hands = [ev.evaluate(hand) for hand in player_hands]
-        if player_hands[0] == player_hands[1]:
+        player_evals = [ev.evaluate(hand) for hand in player_hands]
+        if len(player_hands[0]) == 1:
+            if player_evals[0] == player_evals[1]:
+                return (player_hands.index(max(player_hands)))
+            else:
+                return player_evals.index(max(player_evals))
+            
+        
+        if player_evals[0] == player_evals[1]:
             # !!TIE HAND, check for suit
             return 2
-        elif player_hands[0] > player_hands[1]:
-            return 0
-        else:
-            return 1
+
+        return player_evals.index(max(player_evals))
 
 
 # Lowball variant of Stud
