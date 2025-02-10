@@ -1,5 +1,6 @@
 # Lowball variant of Stud
-class Razz(StudGame):
+#         <>   removed "StudGame" to test, "StudGame" should be below the <> in the parentheses
+class Razz():
 
     def __init__(self):
         super().__init__()
@@ -45,24 +46,41 @@ class Razz(StudGame):
         else:
             return 1
     
-    # May become obsolete once best_hand is implemented
-    def one_card_evaluation(self, player_hands: list):
-        card_1 = player_hands[0][0] % 13
-        card_2 = player_hands[1][0] % 13
-        if card_1 > card_2: 
-            return 0
-        elif card_1 == card_2:
-            if player_hands[0][0] > player_hands[1][0]: 
-                return 0
-            else: return 1
-        else: return 1
-    
-    def best_hand(self, player_hands: list, player):
-        sorted_hand = sorted([x if x <= 13 else x % 13 for x in player_hands[player]])
+    def best_hand(self, player_hands: list, player, play_count):
+        sorted_hand = sorted([x % 13 for x in player_hands[player]])
         final_hand = []
-        for card in sorted_hand:
-            if card not in final_hand and len(final_hand) < 5:
-                final_hand.append(card)
+        used_indices = []
+        # Put lowest available cards in hand without dupes
+        for i in range(len(sorted_hand)):
+            if len(final_hand) >= play_count:
+                break
+            elif sorted_hand[i] not in final_hand:
+                final_hand.append(sorted_hand[i])
+                used_indices.append(i)
+        # If we were unable to complete the hand, make lowest pair/three-of-a-kind
+        i = 2
+        while i <= 3:
+            for j in range(len(sorted_hand)):
+                if len(final_hand) >= play_count:
+                    break
+                if j in used_indices:
+                    continue
+                if final_hand.count(sorted_hand[j]) < i:
+                     final_hand.append(sorted_hand[j])
+            i += 1
+        return final_hand
+
+    def count_mod_steps(x, n):
+        count = 0
+        while x >= n:
+            x -= n
+            count += 1
+            if count > 100:
+                return -1
+        return count
+    
+    # CREATE METHOD TO COMPARE TWO HANDS TO FIND WINNER
+    # CREATE METHOD TO COMPARE SINGLE CARDS (SUIT MATTERS)
                 
 
 
