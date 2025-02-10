@@ -114,27 +114,51 @@ class SevenCardStud(StudGame):
 
         return ret_hands
 
-    
+    # !! come back to this later and evaluate it to make sure it makes sense
     def utility_function(self, history: list, player_hands: list):
-        if not self.is_terminal(self, history):
+        if not self.is_terminal(history):
             raise ValueError(f"hand history was not terminal: {history}")
-        
-        contribution = [self.betting_structure[0]] * 2
+
+        contribution = [0, 0]
+        pot = (2 * self.betting_structure[0])
+        round_num = 3
+        betsize = 2
+        bet_map = {
+            0:self.betting_structure[1], # Bring-In
+            1:self.betting_structure[2], # Complete
+            2:lambda: max(contribution), # Call
+            3:lambda: max(contribution) + self.betting_structure[betsize], # Bet
+            4:lambda: min(contribution), # Fold
+            5:contribution[0], # Check
+        }
+
+        for action in history:
+            if action == 'C':
+                pot += sum(contribution)
+                contribution = [0, 0]
+                round_num += 1
+                if round_num == 5:
+                    betsize += 1
+                continue
+            elif action == 2 or action == 3 or action == 4:
+                contribution[contribution.index(min(contribution))] = bet_map[action]()
+                continue
+            contribution[contribution.index(min(contribution))] = bet_map[action]
 
         if history[-1] == 4:
-            for action in history:
-                pass
             winner = self.turn_to_act(history, [hand[2:] for hand in player_hands])
-            pot = sum(contribution)
+            pot += sum(contribution)
             contribution = [0, 0]
             contribution[winner] = pot
             return contribution
+        
         else:
-            for action in history:
-                pass
-            pot = sum(contribution)
+            pot += sum(contribution)
+
+            if self.hand_evaluation(player_hands) == 2:
+                contribution = [pot / 2] * 2
+                return contribution
             contribution = [0, 0]
-            # !! introduce logic for chopped pots (players have same hand)
             contribution[self.hand_evaluation(player_hands)] = pot
             return contribution
         
@@ -151,7 +175,6 @@ class SevenCardStud(StudGame):
             
         
         if player_evals[0] == player_evals[1]:
-            # !!TIE HAND, check for suit
             return 2
 
         return player_evals.index(max(player_evals))
@@ -173,3 +196,4 @@ class StudHiLo(StudGame):
     # Stud8 has more complex logic with how it determines who wins what percentage of the pop (e.g. scoops, splits, chops on the low/high)
     def utility_function(self, history: list, player_hands: list):
         pass
+    
