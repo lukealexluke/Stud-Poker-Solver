@@ -1,15 +1,16 @@
+from collections import Counter
 # Lowball variant of Stud
 #         <>   removed "StudGame" to test, "StudGame" should be below the <> in the parentheses
+
 class Razz():
 
     def __init__(self):
         super().__init__()
-    
-    def __init__(self):
-        super().__init__()
         self.stack = [1000, 1000]
         self.betting_structure = [1,2,4,8] # Ante - BI - (CO/SB) - BB
+        self.player_hands = [[0],[0]]
     
+
     def utility_function(self, history: list, player_hands: list):
         if not self.is_terminal(self, history):
             raise ValueError(f"hand history was not terminal: {history}")
@@ -33,6 +34,7 @@ class Razz():
             contribution[self.hand_evaluation(player_hands)] = pot
             return contribution
     
+
     def hand_evaluation(self, player_hands: list):
         if len(player_hands[0]) == 1:
             self.one_card_evaluation(player_hands)
@@ -46,29 +48,34 @@ class Razz():
         else:
             return 1
     
-    def best_hand(self, player_hands: list, player, play_count):
-        sorted_hand = sorted([x % 13 for x in player_hands[player]])
+
+    def best_hand(self, current_hand: list):
+        sorted_hand = sorted([x % 13 for x in current_hand])
         final_hand = []
         used_indices = []
+
         # Put lowest available cards in hand without dupes
         for i in range(len(sorted_hand)):
-            if len(final_hand) >= play_count:
+            if len(final_hand) >= 5:
                 break
             elif sorted_hand[i] not in final_hand:
                 final_hand.append(sorted_hand[i])
                 used_indices.append(i)
+
         # If we were unable to complete the hand, make lowest pair/three-of-a-kind
         i = 2
         while i <= 3:
             for j in range(len(sorted_hand)):
-                if len(final_hand) >= play_count:
+                if len(final_hand) >= 5:
                     break
                 if j in used_indices:
                     continue
                 if final_hand.count(sorted_hand[j]) < i:
                      final_hand.append(sorted_hand[j])
             i += 1
+
         return final_hand
+
 
     def count_mod_steps(x, n):
         count = 0
@@ -78,6 +85,28 @@ class Razz():
             if count > 100:
                 return -1
         return count
+
+    def count_dupe_cards(hand: list):
+        card_counts = Counter(hand)
+        dupes = {card: count for card, count in card_counts.items() if count > 1}
+        return dupes
+    
+
+    def winning_hand(self):
+        hand_1 = self.count_dupe_cards(self.best_hand(self.player_hands[0]))
+        hand_2 = self.count_dupe_cards(self.best_hand(self.player_hands[1]))
+        # ranks -- Full House = 4  ToaK = 3  Two Pair = 2  Pair = 1  Singles = 0
+        hand_1_rank = 0
+        hand_2_rank = 0
+        
+        
+        
+
+        
+
+
+
+
     
     # CREATE METHOD TO COMPARE TWO HANDS TO FIND WINNER
     # CREATE METHOD TO COMPARE SINGLE CARDS (SUIT MATTERS)
