@@ -8,7 +8,11 @@ class Razz():
         super().__init__()
         self.stack = [1000, 1000]
         self.betting_structure = [1,2,4,8] # Ante - BI - (CO/SB) - BB
-        self.player_hands = [[0],[0]]
+        self.player_hands = [[],[]]
+    
+    def set_player_hands(self, hand1: list, hand2: list):
+        self.player_hands[0] = hand1
+        self.player_hands[1] = hand2
     
 
     def utility_function(self, history: list, player_hands: list):
@@ -33,30 +37,21 @@ class Razz():
             # !! introduce logic for chopped pots (players have same hand)
             contribution[self.hand_evaluation(player_hands)] = pot
             return contribution
+        
     
-
-    def hand_evaluation(self, player_hands: list):
-        if len(player_hands[0]) == 1:
-            self.one_card_evaluation(player_hands)
-
-            # !! update to check for suit
-        if player_hands[0] == player_hands[1]:
-            # !!TIE HAND, check for suit
-            return 2
-        elif player_hands[0] > player_hands[1]:
-            return 0
-        else:
-            return 1
+    def one_card_winner():
+        pass
     
-
-    def best_hand(self, current_hand: list):
-        sorted_hand = sorted([x % 13 for x in current_hand])
+    
+    # Finds best hand from 7 cards
+    def best_hand(self, player_num: int, card_count: int):
+        sorted_hand = sorted([x % 13 for x in self.player_hands[player_num]])
         final_hand = []
         used_indices = []
 
         # Put lowest available cards in hand without dupes
         for i in range(len(sorted_hand)):
-            if len(final_hand) >= 5:
+            if len(final_hand) >= card_count:
                 break
             elif sorted_hand[i] not in final_hand:
                 final_hand.append(sorted_hand[i])
@@ -66,7 +61,7 @@ class Razz():
         i = 2
         while i <= 3:
             for j in range(len(sorted_hand)):
-                if len(final_hand) >= 5:
+                if len(final_hand) >= card_count:
                     break
                 if j in used_indices:
                     continue
@@ -76,7 +71,7 @@ class Razz():
 
         return final_hand
 
-
+    # Counts number of modulo steps to reach answer
     def count_mod_steps(x, n):
         count = 0
         while x >= n:
@@ -86,30 +81,81 @@ class Razz():
                 return -1
         return count
 
-    def count_dupe_cards(hand: list):
-        card_counts = Counter(hand)
-        dupes = {card: count for card, count in card_counts.items() if count > 1}
-        return dupes
-    
+    # Returns 0 if P1 wins, 1 if P2 wins
+    def winner(self, card_count):
+        # Check with gene to see if this logic is good
+        if card_count == 1:
+            if self.player_hands[0][0] % 13 > self.player_hands[1][0] % 13:
+                return 0
+            elif self.player_hands[0][0] % 13 < self.player_hands[1][0] % 13:
+                return 1
+            else:
+                if self.player_hands[0][0] > self.player_hands[1][0]:
+                    return 0
+                else: return 1
 
-    def winning_hand(self):
-        hand_1 = self.count_dupe_cards(self.best_hand(self.player_hands[0]))
-        hand_2 = self.count_dupe_cards(self.best_hand(self.player_hands[1]))
-        # ranks -- Full House = 4  ToaK = 3  Two Pair = 2  Pair = 1  Singles = 0
-        hand_1_rank = 0
-        hand_2_rank = 0
+        hand1 = Counter(self.best_hand(0, card_count))
+        hand2 = Counter(self.best_hand(1, card_count))
+
+        hand1 = dict(sorted(hand1.items(), key=lambda x: x[1], reverse=True))
+        hand2 = dict(sorted(hand2.items(), key=lambda x: x[1], reverse=True))
+
+        hand1_rank = self.find_hand_rank(hand1)
+        hand2_rank = self.find_hand_rank(hand2)
+
+        # Compare hand ranks
+        if hand1_rank < hand2_rank:
+            return 0
         
+        elif hand1_rank > hand2_rank:
+            return 1
         
+        rank = hand1_rank
+
+        # Full House tiebreaker
+        if rank == 4:
+            if list(hand1.keys())[0] < list(hand2.keys())[0]:
+                return 0
+            return 1
         
-
+        # ToaK tiebreaker
+        elif rank == 3:
+            if list(hand1.keys())[0] < list(hand2.keys())[0]:
+                return 0
+            return 1
         
+        # Two pair tiebreaker
+        elif rank == 2:
+            if min(list(hand1.keys())[0], list(hand1.keys())[1]) < min(list(hand2.keys())[0], list(hand2.keys())[1]):
+                return 0
+            elif min(list(hand1.keys())[0], list(hand1.keys())[1]) > min(list(hand2.keys())[0], list(hand2.keys())[1]):
+                return 1
+            elif max(list(hand1.keys())[0], list(hand1.keys())[1]) < max(list(hand2.keys())[0], list(hand2.keys())[1]):
+                return 0
+            return 1
+        
+        # Pair tiebreaker
+        elif rank == 2:
+            if list(hand1.keys())[0] < list(hand2.keys())[0]:
+                return 0
+            return 1
 
-
-
-
-    
-    # CREATE METHOD TO COMPARE TWO HANDS TO FIND WINNER
-    # CREATE METHOD TO COMPARE SINGLE CARDS (SUIT MATTERS)
+        # Clean tiebreaker
+        else:
+            if min(hand1) < min(hand2):
+                return 0
+            return 1
+        
+        # Fail-safe return
+        return -1
+        
+    def find_hand_rank(self, hand: dict):
+        # ranks -- Full House = 4  ToaK = 3  Two Pair = 2  Pair = 1  Clean = 0
+        if list(hand.values()).count(2) == 0 and list(hand.values()).count(3) == 0: return 0
+        elif list(hand.values()).count(2) == 1 and list(hand.values()).count(3) == 0: return 1
+        elif list(hand.values()).count(2) == 2 and list(hand.values()).count(3) == 0: return 2
+        elif list(hand.values()).count(2) == 0 and list(hand.values()).count(3) == 1: return 3
+        else: return 4
                 
 
 
