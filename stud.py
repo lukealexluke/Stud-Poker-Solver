@@ -50,6 +50,10 @@ class StudGame():
             return [0, 0, 0, 0, 0, 0, 0]
         elif self.turn_to_act(history) == 'C': # Chance Node
             return [0, 0, 0, 1, 0, 1, 0]
+        elif history[-4:] == [3, 3, 3, 3]:
+            return [0, 0, 1, 0, 1, 0, 0]
+        elif history[-4:] == [0, 1, 3, 3]:
+            return [0, 0, 1, 0, 1, 0, 0]
 
         last_action = history[-1]
         return action_map.get(last_action, [0, 0, 0, 0, 0, 0, 0])
@@ -69,7 +73,7 @@ class StudGame():
             if first != curr:
                 swaps += 1
             
-        return ((len(history) - swaps) % 2) # !! subtract chance node
+        return ((len(history) - swaps - history.count('C')) % 2)
     
     # Determines the payoff at a terminal node
     def utility_function(self, history):
@@ -114,7 +118,6 @@ class SevenCardStud(StudGame):
 
         return ret_hands
 
-    # !! come back to this later and evaluate it to make sure it makes sense
     def utility_function(self, history: list, player_hands: list):
         if not self.is_terminal(history):
             raise ValueError(f"hand history was not terminal: {history}")
@@ -139,11 +142,8 @@ class SevenCardStud(StudGame):
                 round_num += 1
                 if round_num == 5:
                     betsize += 1
-                continue
-            elif action == 2 or action == 3 or action == 4:
-                contribution[contribution.index(min(contribution))] = bet_map[action]()
-                continue
-            contribution[contribution.index(min(contribution))] = bet_map[action]
+            else:
+                contribution[contribution.index(min(contribution))] = bet_map[action]() if callable(bet_map[action]) else bet_map[action]
 
         if history[-1] == 4:
             winner = self.turn_to_act(history, [hand[2:] for hand in player_hands])
@@ -197,3 +197,6 @@ class StudHiLo(StudGame):
     def utility_function(self, history: list, player_hands: list):
         pass
     
+thegame = SevenCardStud()
+
+print(thegame.utility_function([0,1,2,'C',3,3,4], [[1,2,3,4,5],[6,7,8,9,10]]))
