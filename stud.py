@@ -48,7 +48,7 @@ class StudGame():
             return [1, 1, 0, 0, 0, 0, 0]
         elif self.is_terminal(history): # Hand is Over
             return [0, 0, 0, 0, 0, 0, 0]
-        elif self.turn_to_act(history) == 'C': # Chance Node
+        elif history[-1] == 'C': # Chance Node
             return [0, 0, 0, 1, 0, 1, 0]
         elif history[-4:] == [3, 3, 3, 3]:
             return [0, 0, 1, 0, 1, 0, 0]
@@ -60,7 +60,7 @@ class StudGame():
     
     # Determines who is first to act given a history and set of cards (Note: Player 1 is always assumed to be to the left of the dealer, and will act first if hands are tied)
     def turn_to_act(self, history: list, visible_cards: list):
-        pass
+
         if history[-1] == 2:
             return 'C'
         elif history[-2:] == [5, 5] and history[-3:] != [5, 5, 5]:
@@ -196,7 +196,3 @@ class StudHiLo(StudGame):
     # Stud8 has more complex logic with how it determines who wins what percentage of the pop (e.g. scoops, splits, chops on the low/high)
     def utility_function(self, history: list, player_hands: list):
         pass
-    
-thegame = SevenCardStud()
-
-print(thegame.utility_function([0,1,2,'C',3,3,4], [[1,2,3,4,5],[6,7,8,9,10]]))
