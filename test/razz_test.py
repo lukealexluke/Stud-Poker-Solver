@@ -1,5 +1,5 @@
 import unittest
-from razz import Razz
+from razz.razz import Razz
 
 class TestRazz(unittest.TestCase):
     def setUp(self):

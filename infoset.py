@@ -1,4 +1,4 @@
-from stud import StudGame, SevenCardStud
+from game import Game, SevenCardStud
 
 
 # Object which holds the Strategies of each player in a game

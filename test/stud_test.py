@@ -1,5 +1,5 @@
 import unittest
-from stud import SevenCardStud
+from Game import SevenCardStud
 
 class TestStud(unittest.TestCase):
     def setUp(self):
