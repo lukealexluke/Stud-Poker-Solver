@@ -5,7 +5,7 @@ from game import Game, SevenCardStud
 class StrategyProfile:
 
     def __init__(self, game):
-        if not isinstance(game, StudGame):
+        if not isinstance(game, Game):
             raise TypeError("Must call a Stud subclass when creating an instance")
 
         self.player_1 = InformationTree(game)

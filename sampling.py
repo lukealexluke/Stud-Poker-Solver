@@ -1,10 +1,10 @@
-from Game import StudGame, SevenCardStud
+from game import Game, SevenCardStud
 
 
 class SamplingScheme():
 
-    def __init__(self, obj: StudGame):
-        if not isinstance(obj, StudGame):
+    def __init__(self, obj: Game):
+        if not isinstance(obj, Game):
             raise TypeError("Must call a Stud subclass when creating an instance")
         
         self.obj = obj
