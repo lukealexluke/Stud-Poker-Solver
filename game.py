@@ -314,3 +314,6 @@ class StudHiLo(Game):
     # Stud8 has more complex logic with how it determines who wins what percentage of the pop (e.g. scoops, splits, chops on the low/high)
     def utility_function(self, history: list, player_hands: list):
         pass
+
+    def hand_evaluation(self, player_hands: list):
+        pass
