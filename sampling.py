@@ -1,4 +1,4 @@
-from game import Game, SevenCardStud
+from stud import Game, SevenCardStud
 
 
 class SamplingScheme():

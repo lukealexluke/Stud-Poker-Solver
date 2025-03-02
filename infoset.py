@@ -1,4 +1,4 @@
-from game import Game, SevenCardStud
+from stud import Game, SevenCardStud
 
 
 # Object which holds the Strategies of each player in a game
@@ -33,7 +33,7 @@ class InformationTree:
 # A node on the information set tree, holds a mixed strategy and a table of regrets
 class InformationSet:
 
-    def __init__(self, game, history):
+    def __init__(self, game: Game, history):
         self.player_strategy = game.get_legal_actions(history)
         self.regret_table = game.get_legal_actions(history)
         self.children = {}
