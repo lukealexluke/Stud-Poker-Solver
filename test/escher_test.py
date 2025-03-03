@@ -9,7 +9,7 @@ import numpy as np
 def test_history_value_network():
     input_size = 32
     layers = [32, 16, 8]
-    model = HistoryValueNetwork(input_size, layers, activation=F.leaky_relu)
+    model = HistoryValueNetwork(input_size, layers, activation='leaky_relu')
 
     # Mock input tensor, size 1
     test_input = torch.randn((1, input_size))
@@ -20,7 +20,7 @@ def test_history_value_network():
     assert torch.isfinite(output).all(), "Non-finite values detected in output"
 
     # Different activation function
-    for activation_fn in [F.relu, F.leaky_relu, torch.sigmoid]:
+    for activation_fn in ['leaky_relu', 'relu', torch.sigmoid]:
         model = HistoryValueNetwork(input_size, layers, activation=activation_fn)
         output = model((test_input, 1))
         assert output.shape == (1, 1), f"Unexpected output shape for activation {activation_fn}: {output.shape}"

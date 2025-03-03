@@ -34,35 +34,48 @@ class SkipLayer(nn.Module):
 
 class HistoryValueNetwork(nn.Module):
 
-    def __init__(self, input_size, nodes_network_layers, activation, **kwargs):
+    def __init__(self, input_size, nodes_network_layers, activation='leaky_relu', **kwargs):
 
         super().__init__()
-        self.activation = activation
-        self.hidden_layers = []
 
-        prev_layer = 0
-        for i in range(len(nodes_network_layers) - 1):
-            if prev_layer == nodes_network_layers[i]:
-                self.hidden_layers.append(SkipLayer(prev_layer))
+        if activation == 'leaky_relu':
+            self.activation = nn.LeakyReLU(negative_slope=0.2)
+        elif activation == 'relu':
+            self.activation = nn.ReLU()
+        else: self.activation = activation
+
+        # Used to be a normal list, is now a ModuleList to handle append better   -Trevor
+        self.hidden_layers = nn.ModuleList()
+
+        # The loop tried to define each layer based on the current and next node in nodes_network_layers, 
+        # but the first layer has no explicit input size. Leading to size mis-match   -Trevor
+        prev_layer = input_size
+        for units in nodes_network_layers:
+            if prev_layer == units:
+                self.hidden_layers.append(SkipLayer(units))
             else:
-                self.hidden_layers.append(nn.Linear(nodes_network_layers[i], nodes_network_layers[i+1]))
-            prev_layer = nodes_network_layers[i]
+                self.hidden_layers.append(nn.Linear(prev_layer, units))
+            prev_layer = units
 
         self.normalization = nn.LayerNorm(nodes_network_layers[-1])
         self.last_layer = nn.Linear(nodes_network_layers[-1], nodes_network_layers[-1])
         self.out_layer = nn.Linear(nodes_network_layers[-1], 1)
 
     def forward(self, inputs: tuple):
-        # !! input should consist of information state, and all legal actions (masked)
 
         x, mask = inputs
         for layer in self.hidden_layers:
-            # !! change later so activation can be any method (relu, leaky, etc.)
-            x = F.relu(layer(x))
+            x = self.activation(layer(x))
 
         x = self.normalization(x)
         x = self.last_layer(x)
-        x = F.relu(x) # !! change activation here too
+        x = self.activation(x)
         x = self.out_layer(x)
 
         return x
+
+
+class PolicyNetwork(nn.Module):
+
+    pass
+
