@@ -49,7 +49,7 @@ class Game():
             return [0, 0, 0, 1, 0, 1, 0]
         elif history[-4:] == [3, 3, 3, 3]:
             return [0, 0, 1, 0, 1, 0, 0]
-        elif history[-4:] == [0, 1, 3, 3]:
+        elif history[-4:] == [0, 1, 3, 3]: #!! update limit to one bet and four raises, instead of one bet and three raises
             return [0, 0, 1, 0, 1, 0, 0]
 
         last_action = history[-1]

@@ -4,9 +4,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+# python -m test.escher_test
+
 def test_history_value_network():
     input_size = 32
-    layers = [32, 32, 32]
+    layers = [32, 16, 8]
     model = HistoryValueNetwork(input_size, layers, activation=F.leaky_relu)
 
     # Mock input tensor, size 1

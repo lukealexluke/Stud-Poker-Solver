@@ -41,12 +41,12 @@ class HistoryValueNetwork(nn.Module):
         self.hidden_layers = []
 
         prev_layer = 0
-        for nodes in nodes_network_layers:
-            if prev_layer == nodes:
-                self.hidden_layers.append(SkipLayer(nodes))
+        for i in range(len(nodes_network_layers) - 1):
+            if prev_layer == nodes_network_layers[i]:
+                self.hidden_layers.append(SkipLayer(prev_layer))
             else:
-                self.hidden_layers.append(nn.Linear(nodes, nodes))
-            prev_layer = nodes
+                self.hidden_layers.append(nn.Linear(nodes_network_layers[i], nodes_network_layers[i+1]))
+            prev_layer = nodes_network_layers[i]
 
         self.normalization = nn.LayerNorm(nodes_network_layers[-1])
         self.last_layer = nn.Linear(nodes_network_layers[-1], nodes_network_layers[-1])
