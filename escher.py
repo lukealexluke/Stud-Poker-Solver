@@ -66,16 +66,3 @@ class HistoryValueNetwork(nn.Module):
         x = self.out_layer(x)
 
         return x
-    
-    """
-        for layer in self.hidden_layers:
-            x = layer(x)
-            x = self.activation(x)
-
-        x = self.normalization(x)
-        x = self.last_layer(x)
-        x = self.activation(x)
-        x = self.out_layer(x)
-
-        return x
-    """
