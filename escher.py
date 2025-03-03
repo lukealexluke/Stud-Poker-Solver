@@ -29,7 +29,7 @@ class SkipLayer(nn.Module):
         self.layer = nn.Linear(units, units)
         self.hidden = nn.Linear(units, units)
     
-    def call(self, x):
+    def forward(self, x):
         return self.hidden(x) + x
 
 class HistoryValueNetwork(nn.Module):
