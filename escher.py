@@ -26,13 +26,13 @@ import numpy as np
 class SkipLayer(nn.Module):
     def __init__(self, units, **kwargs):
         super().__init__(**kwargs)
-        self.layer = nn.Linear()
+        self.layer = nn.Linear(units, units)
         self.hidden = nn.Linear(units, units)
     
     def call(self, x):
         return self.hidden(x) + x
 
-class HistoryValueNetwork(nn.module):
+class HistoryValueNetwork(nn.Module):
 
     def __init__(self, input_size, nodes_network_layers, activation, **kwargs):
 
@@ -52,9 +52,10 @@ class HistoryValueNetwork(nn.module):
         self.last_layer = nn.Linear(nodes_network_layers[-1], nodes_network_layers[-1])
         self.out_layer = nn.Linear(nodes_network_layers[-1], 1)
 
-    def call(self, information_state):
+    def forward(self, inputs: tuple):
         # !! input should consist of information state, and all legal actions (masked)
 
+        x, mask = inputs
         for layer in self.hidden_layers:
             # !! change later so activation can be any method (relu, leaky, etc.)
             x = F.relu(layer(x))
