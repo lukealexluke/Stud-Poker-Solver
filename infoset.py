@@ -1,4 +1,5 @@
 from stud import Game, SevenCardStud
+import numpy as np
 
 
 # Object which holds the Strategies of each player in a game
@@ -34,7 +35,8 @@ class InformationTree:
 class InformationSet:
 
     def __init__(self, game: Game, history):
-        self.player_strategy = game.get_legal_actions(history)
-        self.regret_table = game.get_legal_actions(history)
+
+        self.legal_actions = np.array(game.get_legal_actions(history))
+        self.policy = np.divide(self.legal_actions, np.sum(self.legal_actions)) # !! modify this later so we can pick a different starting policy
         self.children = {}
         # !! update to reflect proper probabilities
