@@ -28,6 +28,7 @@ and updating states as it goes, e.g. MCTS.
 """
 
 import enum
+from itertools import permutations
 
 import numpy as np
 
@@ -99,7 +100,7 @@ class StudPokerState(pyspiel.State):
     self._game_over = False
     self._next_player = 0
 
-    self._num_checkcalls = 0 # (number of checks/calls in a given round, ends round when equal to 2)
+    self._num_checks = 0 # (number of checks in a given round, ends round when equal to 2)
     self._num_raises = 0 # (number of raises in a given round, ends round when equal to 4)
     self._street = 1 # (1 through 5, represents current street)
     self._stakes = [1,2,8,16] # (Ante, Bring-In, Complete/Small-Bet, Big-Bet)
@@ -112,8 +113,6 @@ class StudPokerState(pyspiel.State):
     self._sixth_street_sequence = []
     self._seventh_street_sequence = []
 
-    self._deck = [i for i in range(1,53)]
-
   # OpenSpiel (PySpiel) API functions are below. This is the standard set that
   # should be implemented by every sequential-move game with chance.
 
@@ -124,34 +123,36 @@ class StudPokerState(pyspiel.State):
     elif len(self.cards) < _NUM_PLAYERS:
       return pyspiel.PlayerId.CHANCE
     else:
-      return self._next_player
+      return self._next_player # !! will need to adjust logic for upcard logic
 
   def _legal_actions(self, player):
     """Returns a list of legal actions, sorted in ascending order."""
-    movelist = []
-    if self._game_over:
-      return []
-    elif not self._third_street_sequence:
-      movelist.append(Action.BRING_IN)
-      movelist.append(Action.COMPLETE)
-      return movelist
+    assert player >= 0
+    # specific state cases
+    if not self._third_street_sequence:
+      return [Action.BRING_IN, Action.COMPLETE]
     elif self._num_raises == 4:
-      movelist.append(Action.CALL)
-      movelist.append(Action.FOLD)
-      return movelist
+      return [Action.CALL, Action.FOLD]
+    elif self._third_street_sequence[-1] == Action.BRING_IN:
+      return [Action.COMPLETE, Action.CALL, Action.FOLD]
+    
+    movelist = []
+    if self._num_raises == 0:
+      movelist.append(Action.CHECK)
     else:
       movelist.append(Action.CALL)
-      movelist.append(Action.CHECK)
-      movelist.append(Action.BET)
-      return movelist
-    # !! give options for: ischancenode, completing on third street
+      movelist.append(Action.FOLD)
+    movelist.append(Action.BET)
+    return movelist
 
       
 
   def chance_outcomes(self):
     """Returns the possible chance outcomes and their probabilities."""
     assert self.is_chance_node()
-    outcomes = sorted(_DECK - set(self.cards))
+    taken_cards = self.public_cards + self.private_cards
+    taken_cards = [item for sub_list in taken_cards for item in sub_list]
+    outcomes = list(permutations((_DECK - set(taken_cards)), 2))
     p = 1.0 / len(outcomes)
     return [(o, p) for o in outcomes]
 
@@ -159,15 +160,28 @@ class StudPokerState(pyspiel.State):
     """Applies the specified action to the state."""
     if self.is_chance_node():
       self.cards.append(action)
+      self._num_raises = 0
+      self._num_checks = 0
     else:
       self.bets.append(action)
       if action == Action.BET:
-        self.pot[self._next_player] += 1
-      self._next_player = 1 - self._next_player
-      if ((min(self.pot) == 2) or
-          (len(self.bets) == 2 and action == Action.PASS) or
-          (len(self.bets) == 3)):
+        self.pot[self._next_player] += 1 # !! change once self.pot is figured out
+        self._num_raises += 1
+      elif action == Action.BRING_IN:
+        self.pot[self._next_player] += 1 # !!
+      elif action == Action.COMPLETE:
+        self.pot[self._next_player] += 1 # !!
+      elif action == Action.CALL:
+        self.pot[self._next_player] += 1 # !!
+        self._num_raises = 0
+        self._num_checks = 0
+      elif action == Action.CHECK:
+        self._num_checks += 1
+      if (action == Action.FOLD or 
+        (action == Action.CALL and self._seventh_street_sequence) or 
+        (self._num_checks == 2 and self._seventh_street_sequence)):
         self._game_over = True
+      self._next_player = 1 - self._next_player # !! modify this logic for up-card logic
 
   def _action_to_string(self, player, action):
     """Action -> string."""
