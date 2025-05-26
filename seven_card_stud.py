@@ -28,12 +28,17 @@ and updating states as it goes, e.g. MCTS.
 """
 
 import enum
+import eval7 as ev
 from itertools import permutations
 
 import numpy as np
 
 import pyspiel
 
+def best_hand(hands):
+  """Returns index of best hand"""
+  pass
+  # !! implement best hand logic
 
 class Action(enum.IntEnum):
   BRING_IN = 0
@@ -99,6 +104,7 @@ class StudPokerState(pyspiel.State):
     self.pot = [1.0, 1.0]
     self._game_over = False
     self._next_player = 0
+    self._player_best_uphand = None
 
     self._num_checks = 0 # (number of checks in a given round, ends round when equal to 2)
     self._num_raises = 0 # (number of raises in a given round, ends round when equal to 4)
@@ -120,10 +126,13 @@ class StudPokerState(pyspiel.State):
     """Returns id of the next player to move, or TERMINAL if game is over."""
     if self._game_over:
       return pyspiel.PlayerId.TERMINAL
-    elif len(self.cards) < _NUM_PLAYERS:
+    elif len(self.private_cards[0]) < 2 or len(self.public_cards[0]) == 0:
       return pyspiel.PlayerId.CHANCE
+    elif self.public_cards[0]:
+      pass
+    # !! implement logic for end of third/fourth/fifth/six street
     else:
-      return self._next_player # !! will need to adjust logic for upcard logic
+      return self._next_player
 
   def _legal_actions(self, player):
     """Returns a list of legal actions, sorted in ascending order."""
@@ -159,20 +168,31 @@ class StudPokerState(pyspiel.State):
   def _apply_action(self, action):
     """Applies the specified action to the state."""
     if self.is_chance_node():
-      self.cards.append(action)
+      if len(self.private_cards) < 2:
+        self.private_cards.append(action)
+      elif len(self.public_cards) == 0:
+        self.public_cards.append(action)
+        self._player_best_uphand = best_hand(self.public_cards)
+      elif len(self.public_cards[0]) < 4:
+        self.public_cards.append(action)
+      else:
+        self.private_cards.append(action)
       self._num_raises = 0
       self._num_checks = 0
     else:
       self.bets.append(action)
       if action == Action.BET:
-        self.pot[self._next_player] += 1 # !! change once self.pot is figured out
+        if len(self.public_cards[0]) <= 2:
+          self.pot[self._next_player] == max(self.pot) + self._stakes[2]
+        else:
+          self.pot[self._next_player] == max(self.pot) + self._stakes[3]
         self._num_raises += 1
       elif action == Action.BRING_IN:
-        self.pot[self._next_player] += 1 # !!
+        self.pot[self._next_player] == self._stakes[1]
       elif action == Action.COMPLETE:
-        self.pot[self._next_player] += 1 # !!
+        self.pot[self._next_player] == self._stakes[2]
       elif action == Action.CALL:
-        self.pot[self._next_player] += 1 # !!
+        self.pot[self._next_player] == max(self.pot)
         self._num_raises = 0
         self._num_checks = 0
       elif action == Action.CHECK:
@@ -181,7 +201,11 @@ class StudPokerState(pyspiel.State):
         (action == Action.CALL and self._seventh_street_sequence) or 
         (self._num_checks == 2 and self._seventh_street_sequence)):
         self._game_over = True
-      self._next_player = 1 - self._next_player # !! modify this logic for up-card logic
+      
+      if best_hand(self.public_cards) != self._player_best_uphand:
+        self._next_player = self._next_player # !! perform check to make sure logic is OK
+      else:
+        self._next_player = 1 - self._next_player
 
   def _action_to_string(self, player, action):
     """Action -> string."""
