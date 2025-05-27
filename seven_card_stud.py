@@ -29,7 +29,7 @@ and updating states as it goes, e.g. MCTS.
 
 import enum
 import eval7 as ev
-from itertools import permutations
+from itertools import permutations, chain
 
 import numpy as np
 
@@ -128,7 +128,7 @@ class StudPokerState(pyspiel.State):
       return pyspiel.PlayerId.TERMINAL
     elif len(self.private_cards[0]) < 2 or len(self.public_cards[0]) == 0:
       return pyspiel.PlayerId.CHANCE
-    elif self.public_cards[0]:
+    elif self.public_cards[0]: # !!
       pass
     # !! implement logic for end of third/fourth/fifth/six street
     else:
@@ -197,7 +197,7 @@ class StudPokerState(pyspiel.State):
         self._num_checks = 0
       elif action == Action.CHECK:
         self._num_checks += 1
-      if (action == Action.FOLD or 
+      if (action == Action.FOLD or # !! this might need to be earlier in the if-chain
         (action == Action.CALL and self._seventh_street_sequence) or 
         (self._num_checks == 2 and self._seventh_street_sequence)):
         self._game_over = True
@@ -245,7 +245,14 @@ class StudPokerState(pyspiel.State):
 
   def __str__(self):
     """String for debug purposes. No particular semantics are required."""
-    return "".join([str(c) for c in self.cards] + ["pb"[b] for b in self.bets])
+    pub = ' '.join([str(c) for c in self.public_cards[0]]) + ' | ' + ' '.join([str(c) for c in self.public_cards[1]])
+    spacer = pub.find('|')
+    priv = ' '.join([str(c) for c in self.private_cards[0]]) + ' ' * spacer + '|' + ' ' * spacer + ' '.join([str(c) for c in self.private_cards[1]])
+    pub = ' ' * (len(' '.join([str(c) for c in self.private_cards[0]]))) + pub
+    bets = chain(self._third_street_sequence, self._fourth_street_sequence, self._fifth_street_sequence, self._sixth_street_sequence, self._seventh_street_sequence)
+    bets = ' '.join(map(str, bets))
+    return f"Cards:\n{pub}\n{priv}\nBets:\n{bets}\nPot\n{self.pot}"
+    
 
 
 class StudPokerObserver:
