@@ -128,8 +128,14 @@ class StudPokerState(pyspiel.State):
       return pyspiel.PlayerId.TERMINAL
     elif len(self.private_cards[0]) < 2 or len(self.public_cards[0]) == 0:
       return pyspiel.PlayerId.CHANCE
-    elif self.public_cards[0]: # !!
-      pass
+    elif self.bets[-1] == Action.CALL:
+      self._num_raises = 0
+      self._num_checks = 0
+      return pyspiel.PlayerId.CHANCE
+    elif self._num_checks == 2:
+      self._num_raises = 0
+      self._num_checks = 0
+      return pyspiel.PlayerId.CHANCE
     # !! implement logic for end of third/fourth/fifth/six street
     else:
       return self._next_player
@@ -153,8 +159,6 @@ class StudPokerState(pyspiel.State):
       movelist.append(Action.FOLD)
     movelist.append(Action.BET)
     return movelist
-
-      
 
   def chance_outcomes(self):
     """Returns the possible chance outcomes and their probabilities."""
@@ -181,6 +185,10 @@ class StudPokerState(pyspiel.State):
       self._num_checks = 0
     else:
       self.bets.append(action)
+      if (action == Action.FOLD or
+        (action == Action.CALL and self._seventh_street_sequence) or 
+        (self._num_checks == 2 and self._seventh_street_sequence)):
+        self._game_over = True
       if action == Action.BET:
         if len(self.public_cards[0]) <= 2:
           self.pot[self._next_player] == max(self.pot) + self._stakes[2]
@@ -197,10 +205,6 @@ class StudPokerState(pyspiel.State):
         self._num_checks = 0
       elif action == Action.CHECK:
         self._num_checks += 1
-      if (action == Action.FOLD or # !! this might need to be earlier in the if-chain
-        (action == Action.CALL and self._seventh_street_sequence) or 
-        (self._num_checks == 2 and self._seventh_street_sequence)):
-        self._game_over = True
       
       if best_hand(self.public_cards) != self._player_best_uphand:
         self._next_player = self._next_player # !! perform check to make sure logic is OK
@@ -238,7 +242,7 @@ class StudPokerState(pyspiel.State):
       return [winnings, -winnings]
     elif pot[0] < pot[1]:
       return [-winnings, winnings]
-    elif self.cards[0] > self.cards[1]:
+    elif best_hand(self.cards) == 0:
       return [winnings, -winnings]
     else:
       return [-winnings, winnings]
@@ -252,7 +256,6 @@ class StudPokerState(pyspiel.State):
     bets = chain(self._third_street_sequence, self._fourth_street_sequence, self._fifth_street_sequence, self._sixth_street_sequence, self._seventh_street_sequence)
     bets = ' '.join(map(str, bets))
     return f"Cards:\n{pub}\n{priv}\nBets:\n{bets}\nPot\n{self.pot}"
-    
 
 
 class StudPokerObserver:
@@ -266,10 +269,10 @@ class StudPokerObserver:
     # Determine which observation pieces we want to include.
     pieces = [("player", 2, (2,))]
     if iig_obs_type.private_info == pyspiel.PrivateInfoType.SINGLE_PLAYER:
-      pieces.append(("private_card", 3, (3,)))
+      pieces.append(("private_card", 52, (52,)))
     if iig_obs_type.public_info:
       if iig_obs_type.perfect_recall:
-        pieces.append(("betting", 6, (3, 2)))
+        pieces.append(("betting", 186, (31, 6)))
       else:
         pieces.append(("pot_contribution", 2, (2,)))
 
@@ -295,7 +298,7 @@ class StudPokerObserver:
       self.dict["pot_contribution"][:] = state.pot
     if "betting" in self.dict:
       for turn, action in enumerate(state.bets):
-        self.dict["betting"][turn, action] = 1
+        self.dict["betting"][turn, action] = 1 # !! this will need to be updated to reflect public and private cards
 
   def string_from(self, state, player):
     """Observation of `state` from the PoV of `player`, as a string."""
@@ -308,7 +311,7 @@ class StudPokerObserver:
       pieces.append(f"pot[{int(state.pot[0])} {int(state.pot[1])}]")
     if "betting" in self.dict and state.bets:
       pieces.append("".join("pb"[b] for b in state.bets))
-    return " ".join(str(p) for p in pieces)
+    return " ".join(str(p) for p in pieces) # !! same as for set_from, this will need to be updated to reflect public and private cards
 
 
 # Register the game with the OpenSpiel library
