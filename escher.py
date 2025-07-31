@@ -12,7 +12,7 @@ import torch.nn.functional as F
 import collections
 from datetime import datetime
 import time
-from itertools import islice
+from itertools import islice, product
 
 import policy
 import exploitability
@@ -423,8 +423,8 @@ class ESCHER(policy.Policy):
         self._val_network_train = ValueNetwork(self._value_embedding_size, self._value_network_layers)
         self._loss_value = torch.nn.MSELoss()
         self._optimizer_value = torch.optim.Adam(self._val_network_train.parameters(), lr=self._learning_rate)
-        self._value_train_step = self._value_train() # this needs to be replaced with something else
-        self._value_test_step = self._value_train_test() # this needs to be replaced with something else
+        self._value_train_step = self._value_train()
+        self._value_test_step = self._value_test()
 
 
     def _reinitialize_policy_network(self):
@@ -628,7 +628,7 @@ class ESCHER(policy.Policy):
         self.traverse_game_tree_n_times(1, 0, track_mean_squares = False)
 
         for i in range(self._num_iterations + 1): # (Line 3)
-            print(i)
+            print(f"Iteration #{i}")
 
             start = time.time()
             if self._experiment_string is not None:
@@ -662,6 +662,7 @@ class ESCHER(policy.Policy):
             val_train_time = time.time()
             print(val_train_time - val_traj_time, 'value train time')
 
+            # track_mse = False # !! im not sure the point of this
             # train regret network
             for p in range(self._num_players): # (Line 6)
                 regret_start_time = time.time()
@@ -681,6 +682,7 @@ class ESCHER(policy.Policy):
                     self._regret_networks[p].save(
                         os.path.join(self._save_regret_networks, f'regretnet_p{p}_it{self._iteration:04}'))
                 print(time.time() - regret_traj_time, 'regret train time')
+            # self.print_mse()
             total_regret_time = time.time()
             print(total_regret_time - val_train_time, 'total regret time')
 
@@ -695,7 +697,11 @@ class ESCHER(policy.Policy):
                     os.makedirs(save_path_model, exist_ok = True)
                     model_path = save_path_model + "/policy_nodes_" + str(num_nodes)
                     torch.save(self._policy_network.state_dict(), model_path)
+                    torch.save(self._val_network.state_dict(), save_path_model + f'/value_net_{self._iteration}')
+                    torch.save(self._regret_networks[0], save_path_model + f'/regret_net_p0_{self._iteration}')
+                    torch.save(self._regret_networks[1], save_path_model + f'/regret_net_p1_{self._iteration}')
                     print("saved policy to ", model_path)
+                    print("BUFFER LENGTHS:", len(self._average_policy_memories), len(self._regret_memories[0]), len(self._value_memory))
                     # self.save_policy_network(model_path + "full_model") # !! redundant, remove save_policy_network() function, replace with .save(model, 'model.pth')
                     # print("saved policy to ", model_path + "full_model") # !! redundant call
                 if self._play_against_random:
@@ -711,12 +717,12 @@ class ESCHER(policy.Policy):
                         nodes_path = save_path_convs + "_nodes.npy"
                         np.save(convs_path, np.array(convs))
                         np.save(nodes_path, np.array(nodes))
-                    print(self._iteration, num_nodes, conv)
+                    print("iteration, nodes, nash_conv: ", self._iteration, num_nodes, conv)
                     print(time.time() - exp_start_time, 'exploitability time')
 
         # Train policy network
         policy_loss = self._learn_average_policy_network() # (Line 15)
-        return regret_losses, policy_loss, convs, nodes # (Line 16)
+        return regret_losses, policy_loss, convs, nodes, value_losses # (Line 16)
     
     def save_policy_network(self, outputfolder):
         os.makedirs(outputfolder, exist_ok=True)
@@ -974,7 +980,7 @@ class ESCHER(policy.Policy):
                 cloned_state = orig_state.clone()
                 action = legal_actions[aidx]
                 new_cloned_state = cloned_state.child(action)
-                child_values[action] = self._estimate_value_from_hist(new_cloned_state.clone(), player, last_action=action)
+                child_values[action] = self._estimate_value_from_hist(new_cloned_state.clone(), player, last_action=action) # this may need to be updated (DepreciationWarning)
         else:
             child_values[sampled_action] = child_value / sample_policy[sampled_action]
         if train_regret:
@@ -993,6 +999,7 @@ class ESCHER(policy.Policy):
                 
                 samp_regret = (cf_action_values - cf_value) * state.legal_actions_mask(player)
                 network_input = state.information_state_tensor()
+                print("adding example", type(network_input), type(self._iteration), type(samp_regret), type(state.legal_actions_mask(player)))
                 self._regret_memories[player].add(self._serialize_regret_memory(network_input,
                                                                                 self._iteration,
                                                                                 samp_regret,
@@ -1035,7 +1042,7 @@ class ESCHER(policy.Policy):
         with torch.no_grad():
             regrets = self._regret_networks[player]((unsqueezed_info_state, legal_actions_mask))[0] #!! removed training=False
 
-    def _init_main_val_network(self, hist_state, legal_actions_mask):    
+    def _init_main_val_network(self, hist_state, legal_actions_mask):  
         unsqueezed_hist_state = torch.from_numpy(hist_state).float().unsqueeze(0) # !! converted to torch tensor
         self._val_network.eval() # !! set to eval mode
         with torch.no_grad():
@@ -1111,8 +1118,9 @@ class ESCHER(policy.Policy):
         )
         if len(info_state_vector.shape) == 1:
             info_state_vector = info_state_vector.unsqueeze(0)
-
-        probs = self._policy_network((info_state_vector, legal_actions_mask)) # !! removed training=False
+        self._policy_network.eval() # !! set policy_net to evaluation mode
+        with torch.no_grad(): # !! added torch_nograd()
+            probs = self._policy_network((info_state_vector, legal_actions_mask)) # !! removed training=False
         probs = probs.detach().cpu().numpy() # !! added detach, maybe not the right call though?
         return {action: probs[0][action] for action in legal_actions}
     
@@ -1162,6 +1170,8 @@ class ESCHER(policy.Policy):
         iteration = torch.tensor(self._iteration, dtype=torch.float32)
         data = self._get_value_dataset_test()
         for batch in islice(data, 1):
+            print("BATCH APPEARANCE", batch[0].shape, batch[1].shape, batch[2].shape, batch[3].shape)
+            print(batch[0])
             main_loss = self._value_test_step(*batch, iteration)
             if self._debug_val:
                 print(main_loss, "test loss")
@@ -1177,7 +1187,6 @@ class ESCHER(policy.Policy):
             self._optimizer_regrets[player].zero_grad()
 
             preds = model((info_states, masks))
-
             sample_weights = (iterations * 2.0) / iter
             loss_fn = self._loss_regrets[player]
 
@@ -1195,14 +1204,14 @@ class ESCHER(policy.Policy):
     def _value_train(self):
 
         def train_step(full_hist_states, values, iterations, masks, iter):
-            model = self._val_network_train
+            model = self._val_network_train # !! possible mix up, make sure that right model is being selected (see line 1217 as well)
             model.train()
 
             self._optimizer_value.zero_grad()
 
             preds = model((full_hist_states, masks))
-            main_loss = self._loss_value(preds, values)
-
+            preds = preds.squeeze(-1) # !! possible solution
+            main_loss = self._loss_value(preds, values) # !! this is the warning line
             main_loss.backward()
             self._optimizer_value.step()
 
@@ -1210,14 +1219,15 @@ class ESCHER(policy.Policy):
         
         return train_step
     
-    def _value_train_test(self):
+    def _value_test(self):
 
         def train_step(full_hist_states, values, iterations, masks, iter):
             model = self._val_network
-            model.eval()
+            model.train() # was model.eval()
 
             with torch.no_grad():
                 preds = model((full_hist_states, masks))
+                preds = preds.squeeze(-1) # !! possible solution?
                 main_loss = self._loss_value(preds, values)
 
             return main_loss.item()
@@ -1298,35 +1308,46 @@ if __name__ == "__main__":
     # Quick example how to run on Kuhn
     # Hyperparameters not tuned
 
-    train_device = 'cuda'
+    train_device = 'cpu'
     save_path = "./tmp/results/"
     os.makedirs(save_path, exist_ok=True)
 
     game = pyspiel.load_game("kuhn_poker")
 
     iters = 100
-    num_traversals = 1000
-    num_val_fn_traversals = 1000
-    regret_train_steps = 5000
-    val_train_steps = 5000
-    policy_net_train_steps = 10000
+    num_traversals = 1500
+    num_val_fn_traversals = 1500
+    regret_train_steps = 1000
+    val_train_steps = 1000
+    policy_net_train_steps = 1000
     batch_size_regret = 2048
     batch_size_val = 2048
+    batch_size_pol = 2048
 
     deep_cfr_solver = ESCHER(
         game,
         num_traversals=int(num_traversals),
         num_iterations=iters,
-        check_exploitability_every=10,
+        check_exploitability_every=1, # was 10
         compute_exploitability=True,
         regret_network_train_steps=regret_train_steps,
         policy_network_train_steps=policy_net_train_steps,
         batch_size_regret=batch_size_regret,
+        batch_size_average_policy=batch_size_pol,
         value_network_train_steps=val_train_steps,
         batch_size_value=batch_size_val,
         train_device=train_device,
-        learning_rate=0.01 # trying a higher learning rate
+        learning_rate= 0.001, # smaller learning rate
+
+        val_expl = 0.01, # apparently this parameter does a lot
+
+        policy_network_layers=(64,64,64),
+        regret_network_layers=(64,64,64),
+        value_network_layers=(64,64,64),
+        memory_capacity=500000, # smaller buffer capacity?
     )
 
-    regret, pol_loss, convs, nodes = deep_cfr_solver.solve(save_path_convs=save_path)
+    regret, pol_loss, convs, nodes, value_loss = deep_cfr_solver.solve(save_path_convs=save_path)
+
     print("COMPLETE!!!")
+    print("regret losses over iterations:", regret)
