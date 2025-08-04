@@ -318,7 +318,7 @@ class ESCHER(policy.Policy):
         super().__init__(game, all_players)
         self._game = game
         self._save_policy_weights = save_policy_weights
-        self._compute_exploitability = True
+        self._compute_exploitability = False # set to false since stud is too complex to compute nash
         self._play_against_random = play_against_random
         self._append_legal_actions_mask = append_legal_actions_mask
         self._num_random_games = 2000
@@ -717,6 +717,7 @@ class ESCHER(policy.Policy):
                         np.save(nodes_path, np.array(nodes))
                     print("iteration, nodes, nash_conv: ", self._iteration, num_nodes, conv)
                     print(time.time() - exp_start_time, 'exploitability time')
+            print("end iter")
 
         # Train policy network
         policy_loss = self._learn_average_policy_network() # (Line 15)
@@ -1299,7 +1300,7 @@ if __name__ == "__main__":
         num_traversals=int(num_traversals),
         num_iterations=iters,
         check_exploitability_every=1, # was 10
-        compute_exploitability=True,
+        compute_exploitability=False,
         regret_network_train_steps=regret_train_steps,
         policy_network_train_steps=policy_net_train_steps,
         batch_size_regret=batch_size_regret,
