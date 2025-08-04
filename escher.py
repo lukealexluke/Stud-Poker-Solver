@@ -1065,8 +1065,6 @@ class ESCHER(policy.Policy):
         if state.is_terminal():
             return state.player_return(player)
 
-        print(state)
-
         hist_state = np.append(state.information_state_tensor(0), state.information_state_tensor(1))
         self._example_hist_state = hist_state
         hist_state = torch.as_tensor(hist_state, dtype=torch.float32)
