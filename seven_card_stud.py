@@ -33,6 +33,8 @@ from itertools import permutations, chain
 import numpy as np
 import pyspiel
 import random
+import sys
+import pickle
 
 ranks = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A']
 suits = ['c', 'd', 'h', 's']
@@ -354,48 +356,44 @@ class StudPokerObserver:
     self.tensor.fill(0)
     if "player" in self.dict:
       self.dict["player"][player] = 1
-
     if "private_card_1" in self.dict and len(state.private_cards[player]) > 0:
       self.dict["private_card_1"][state.private_cards[player][0]] = 1
     if "private_card_2" in self.dict and len(state.private_cards[player]) > 1:
       self.dict["private_card_2"][state.private_cards[player][1]] = 1
     if "private_card_3" in self.dict and len(state.private_cards[player]) > 2:
       self.dict["private_card_3"][state.private_cards[player][2]] = 1
-
     if "player_upcard_1" in self.dict and len(state.public_cards[player]) > 0:
       self.dict["player_upcard_1"][state.public_cards[player][0]] = 1
     if "opp_upcard_1" in self.dict and len(state.public_cards[(player + 1) % 2]) > 0:
-      self.dict["opp_card_1"][state.public_cards[(player + 1) % 2][0]] = 1
+      self.dict["opp_upcard_1"][state.public_cards[(player + 1) % 2][0]] = 1
     if "player_upcard_2" in self.dict and len(state.public_cards[player]) > 1:
       self.dict["player_upcard_2"][state.public_cards[player][1]] = 1
     if "opp_upcard_2" in self.dict and len(state.public_cards[(player + 1) % 2]) > 1:
-      self.dict["opp_card_2"][state.public_cards[(player + 1) % 2][1]] = 1
+      self.dict["opp_upcard_2"][state.public_cards[(player + 1) % 2][1]] = 1
     if "player_upcard_3" in self.dict and len(state.public_cards[player]) > 2:
       self.dict["player_upcard_3"][state.public_cards[player][2]] = 1
     if "opp_upcard_3" in self.dict and len(state.public_cards[(player + 1) % 2]) > 2:
-      self.dict["opp_card_3"][state.public_cards[(player + 1) % 2][2]] = 1
+      self.dict["opp_upcard_3"][state.public_cards[(player + 1) % 2][2]] = 1
     if "player_upcard_4" in self.dict and len(state.public_cards[player]) > 3:
       self.dict["player_upcard_4"][state.public_cards[player][3]] = 1
     if "opp_upcard_4" in self.dict and len(state.public_cards[(player + 1) % 2]) > 3:
-      self.dict["opp_card_4"][state.public_cards[(player + 1) % 2][3]] = 1
-
+      self.dict["opp_upcard_4"][state.public_cards[(player + 1) % 2][3]] = 1
     if "pot_contribution" in self.dict:
       self.dict["pot_contribution"][:] = state.pot
-
     if "third_street" in self.dict:
-      for turn, action in enumerate(state.bets):
+      for turn, action in enumerate(state._third_street_sequence):
         self.dict["third_street"][turn, action] = 1
     if "fourth_street" in self.dict:
-      for turn, action in enumerate(state.bets):
+      for turn, action in enumerate(state._fourth_street_sequence):
         self.dict["fourth_street"][turn, action] = 1
     if "fifth_street" in self.dict:
-      for turn, action in enumerate(state.bets):
+      for turn, action in enumerate(state._fifth_street_sequence):
         self.dict["fifth_street"][turn, action] = 1
     if "sixth_street" in self.dict:
-      for turn, action in enumerate(state.bets):
+      for turn, action in enumerate(state._sixth_street_sequence):
         self.dict["sixth_street"][turn, action] = 1
     if "seventh_street" in self.dict:
-      for turn, action in enumerate(state.bets):
+      for turn, action in enumerate(state._seventh_street_sequence):
         self.dict["seventh_street"][turn, action] = 1
 
   def string_from(self, state, player):
@@ -405,29 +403,13 @@ class StudPokerObserver:
       pieces.append(f"p{player}")
 
     if "private_card_1" in self.dict and len(state.private_cards[player]) > 0:
-      pieces.append(f"Private Cards:{state.cards[player]}")
-    if "private_card_2" in self.dict and len(state.private_cards[player]) > 1:
-      pieces.append(f"{state.cards[player]}")
-    if "private_card_3" in self.dict and len(state.private_cards[player]) > 2:
-      pieces.append(f"{state.cards[player]}")
+      pieces.append(f"Private Cards:{state.private_cards[player]}")
 
     if "player_upcard_1" in self.dict and len(state.public_cards[player]) > 0:
-      pieces.append(f"Player Upcards:{state.cards[player]}")
-    if "player_upcard_2" in self.dict and len(state.public_cards[player]) > 1:
-      pieces.append(f"{state.cards[player]}")
-    if "player_upcard_3" in self.dict and len(state.public_cards[player]) > 2:
-      pieces.append(f"{state.cards[player]}")
-    if "player_upcard_4" in self.dict and len(state.public_cards[player]) > 3:
-      pieces.append(f"{state.cards[player]}")
+      pieces.append(f"Player Upcards:{state.public_cards[player]}")
 
     if "opp_upcard_1" in self.dict and len(state.public_cards[(player + 1) % 2]) > 0:
-      pieces.append(f"Opponent Upcards:{state.cards[player]}")
-    if "opp_upcard_2" in self.dict and len(state.public_cards[(player + 1) % 2]) > 1:
-      pieces.append(f"{state.cards[player]}")
-    if "opp_upcard_3" in self.dict and len(state.public_cards[(player + 1) % 2]) > 2:
-      pieces.append(f"{state.cards[player]}")
-    if "opp_upcard_4" in self.dict and len(state.public_cards[(player + 1) % 2]) > 3:
-      pieces.append(f"{state.cards[player]}")
+      pieces.append(f"Opponent Upcards:{state.public_cards[(player + 1) % 2]}")
     
     if "pot_contribution" in self.dict:
       pieces.append(f"pot[{int(state.pot[0])} {int(state.pot[1])}]")
@@ -447,12 +429,37 @@ class StudPokerObserver:
 
 
 # Register the game with the OpenSpiel library
-
-pyspiel.register_game(_GAME_TYPE, StudPokerGame)
+def register():
+  pyspiel.register_game(_GAME_TYPE, StudPokerGame)
 # !! somewhere there is an assertion error with legal actions but im not sure where, its random
+"""
+register()
+game = pyspiel.load_game("python_scs_poker")
+print("initializing game")
+state = game.new_initial_state()
+print(state.legal_actions())
+print(game.max_chance_outcomes())
+print(state.legal_actions_mask(state.current_player()))
+state.apply_action(35)
+state.apply_action(48)
+state.apply_action(32)
+state.apply_action(21)
+state.apply_action(36)
+state.apply_action(33)
+
+state.apply_action(0)
+state.apply_action(1)
+state.apply_action(2)
+print("num_distinct_actions", game.num_distinct_actions())
+print("legal_actions(0)", state.legal_actions(0))
+print("legal_actions_mask(0)", state.legal_actions_mask(0))
+print("current player", state.current_player(), state.is_chance_node())
+"""
+"""
 game = pyspiel.load_game("python_scs_poker")
 print("INITIALIZING GAME")
 state = game.new_initial_state()
+print(len(state.information_state_tensor(0)), sys.getsizeof(pickle.dumps(state.information_state_tensor(0))))
 print("GAME START")
 while not state.is_terminal():
   # The state can be three different types: chance node,
@@ -480,3 +487,4 @@ while not state.is_terminal():
   returns = state.returns()
   for pid in range(game.num_players()):
     print("Utility for player {} is {}".format(pid, returns[pid]))
+"""
