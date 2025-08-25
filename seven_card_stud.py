@@ -201,6 +201,8 @@ class StudPokerState(pyspiel.State):
         self.public_cards[0].append(action)
       elif len(self.public_cards[1]) == 0:
         self.public_cards[1].append(action)
+        self.private_cards[0].sort()
+        self.private_cards[1].sort()
         self._next_player = 1 - best_hand(self.public_cards)
 
       elif len(self.public_cards[1]) < 4:
