@@ -1278,22 +1278,26 @@ if __name__ == "__main__":
     # Quick example how to run on Kuhn
     # Hyperparameters not tuned
     print("STARTED:")
-    train_device = 'cpu'
+    if torch.cuda.is_available():
+        train_device = 'cuda'
+    else:
+        train_device = 'cpu'
+
     save_path = "./tmp/results/"
     os.makedirs(save_path, exist_ok=True)
     seven_card_stud.register()
 
     game = pyspiel.load_game("python_scs_poker")
 
-    iters = 30
-    num_traversals = 100
-    num_val_fn_traversals = 100
-    regret_train_steps = 100
-    val_train_steps = 100
-    policy_net_train_steps = 100
-    batch_size_regret = 256
-    batch_size_val = 256
-    batch_size_pol = 256
+    iters = 1000
+    num_traversals = 5000
+    num_val_fn_traversals = 2500
+    regret_train_steps = 2500
+    val_train_steps = 1000
+    policy_net_train_steps = 2500
+    batch_size_regret = 2048
+    batch_size_val = 2048
+    batch_size_pol = 2048
     print("escher initializing")
     deep_cfr_solver = ESCHER(
         game,
