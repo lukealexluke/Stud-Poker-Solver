@@ -326,12 +326,12 @@ class StudPokerObserver:
     # Determine which observation pieces we want to include.
     pieces = [("player", 2, (2,))]
     if iig_obs_type.private_info == pyspiel.PrivateInfoType.SINGLE_PLAYER:
-      pieces.append(("private_card_1", 52, (52,)))
-      pieces.append(("private_card_2", 52, (52,)))
-      pieces.append(("private_card_3", 52, (52,)))
+      pieces.append(("private_card_1", 17, (17,)))
+      pieces.append(("private_card_2", 17, (17,)))
+      pieces.append(("private_card_3", 17, (17,)))
       for i in range(1, 5):
-        pieces.append((f"player_upcard_{i}", 52, (52,)))
-        pieces.append((f"opp_upcard_{i}", 52, (52,)))
+        pieces.append((f"player_upcard_{i}", 17, (17,)))
+        pieces.append((f"opp_upcard_{i}", 17, (17,)))
     if iig_obs_type.public_info:
       if iig_obs_type.perfect_recall:
         pieces.append(("third_street", 42, (7, 6)))
@@ -358,30 +358,23 @@ class StudPokerObserver:
     self.tensor.fill(0)
     if "player" in self.dict:
       self.dict["player"][player] = 1
-    if "private_card_1" in self.dict and len(state.private_cards[player]) > 0:
-      self.dict["private_card_1"][state.private_cards[player][0]] = 1
-    if "private_card_2" in self.dict and len(state.private_cards[player]) > 1:
-      self.dict["private_card_2"][state.private_cards[player][1]] = 1
-    if "private_card_3" in self.dict and len(state.private_cards[player]) > 2:
-      self.dict["private_card_3"][state.private_cards[player][2]] = 1
-    if "player_upcard_1" in self.dict and len(state.public_cards[player]) > 0:
-      self.dict["player_upcard_1"][state.public_cards[player][0]] = 1
-    if "opp_upcard_1" in self.dict and len(state.public_cards[(player + 1) % 2]) > 0:
-      self.dict["opp_upcard_1"][state.public_cards[(player + 1) % 2][0]] = 1
-    if "player_upcard_2" in self.dict and len(state.public_cards[player]) > 1:
-      self.dict["player_upcard_2"][state.public_cards[player][1]] = 1
-    if "opp_upcard_2" in self.dict and len(state.public_cards[(player + 1) % 2]) > 1:
-      self.dict["opp_upcard_2"][state.public_cards[(player + 1) % 2][1]] = 1
-    if "player_upcard_3" in self.dict and len(state.public_cards[player]) > 2:
-      self.dict["player_upcard_3"][state.public_cards[player][2]] = 1
-    if "opp_upcard_3" in self.dict and len(state.public_cards[(player + 1) % 2]) > 2:
-      self.dict["opp_upcard_3"][state.public_cards[(player + 1) % 2][2]] = 1
-    if "player_upcard_4" in self.dict and len(state.public_cards[player]) > 3:
-      self.dict["player_upcard_4"][state.public_cards[player][3]] = 1
-    if "opp_upcard_4" in self.dict and len(state.public_cards[(player + 1) % 2]) > 3:
-      self.dict["opp_upcard_4"][state.public_cards[(player + 1) % 2][3]] = 1
+
+    for i in range(1,4):
+      if f"private_card_{i}" in self.dict and len(state.private_cards[player]) > (i-1):
+        self.dict[f"private_card_{i}"][state.private_cards[player][i-1] % 13] = 1
+        self.dict[f"private_card_{i}"][state.private_cards[player][i-1] // 13 + 13] = 1
+
+    for j in range(1,5):
+      if f"player_upcard_{j}" in self.dict and len(state.public_cards[player]) > (j-1):
+        self.dict[f"player_upcard_{j}"][state.public_cards[player][j-1] % 13] = 1
+        self.dict[f"player_upcard_{j}"][state.public_cards[player][j-1] // 13 + 13] = 1
+      if f"opp_upcard_{j}" in self.dict and len(state.public_cards[(player + 1) % 2]) > (j-1):
+        self.dict[f"opp_upcard_{j}"][state.public_cards[(player + 1) % 2][j-1] % 13] = 1
+        self.dict[f"opp_upcard_{j}"][state.public_cards[(player + 1) % 2][j-1] // 13 + 13] = 1
+
     if "pot_contribution" in self.dict:
       self.dict["pot_contribution"][:] = state.pot
+      
     if "third_street" in self.dict:
       for turn, action in enumerate(state._third_street_sequence):
         self.dict["third_street"][turn, action] = 1
@@ -433,60 +426,3 @@ class StudPokerObserver:
 # Register the game with the OpenSpiel library
 def register():
   pyspiel.register_game(_GAME_TYPE, StudPokerGame)
-# !! somewhere there is an assertion error with legal actions but im not sure where, its random
-"""
-register()
-game = pyspiel.load_game("python_scs_poker")
-print("initializing game")
-state = game.new_initial_state()
-print(state.legal_actions())
-print(game.max_chance_outcomes())
-print(state.legal_actions_mask(state.current_player()))
-state.apply_action(35)
-state.apply_action(48)
-state.apply_action(32)
-state.apply_action(21)
-state.apply_action(36)
-state.apply_action(33)
-
-state.apply_action(0)
-state.apply_action(1)
-state.apply_action(2)
-print("num_distinct_actions", game.num_distinct_actions())
-print("legal_actions(0)", state.legal_actions(0))
-print("legal_actions_mask(0)", state.legal_actions_mask(0))
-print("current player", state.current_player(), state.is_chance_node())
-"""
-"""
-game = pyspiel.load_game("python_scs_poker")
-print("INITIALIZING GAME")
-state = game.new_initial_state()
-print(len(state.information_state_tensor(0)), sys.getsizeof(pickle.dumps(state.information_state_tensor(0))))
-print("GAME START")
-while not state.is_terminal():
-  # The state can be three different types: chance node,
-  # simultaneous node, or decision node
-  if state.is_chance_node():
-    # Chance node: sample an outcome
-    outcomes = state.chance_outcomes()
-    num_actions = len(outcomes)
-    print("Chance node, got " + str(num_actions) + " outcomes")
-    action_list, prob_list = zip(*outcomes)
-    action = np.random.choice(action_list, p=prob_list)
-    print("Sampled outcome: ",
-          state.action_to_string(state.current_player(), action))
-    state.apply_action(action)
-  else:
-    # Decision node: sample action for the single current player
-    action = random.choice(state.legal_actions(state.current_player()))
-    action_string = state.action_to_string(state.current_player(), action)
-    print("Player ", state.current_player(), ", randomly sampled action: ",
-          action_string)
-    state.apply_action(action)
-  print(str(state))
-
-  # Game is now done. Print utilities for each player
-  returns = state.returns()
-  for pid in range(game.num_players()):
-    print("Utility for player {} is {}".format(pid, returns[pid]))
-"""
