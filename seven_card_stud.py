@@ -232,9 +232,9 @@ class StudPokerState(pyspiel.State):
           self.pot[self._next_player] = max(self.pot) + self._stakes[3]
         self._num_raises += 1
       elif action == Action.BRING_IN:
-        self.pot[self._next_player] = self._stakes[1]
+        self.pot[self._next_player] += self._stakes[1]
       elif action == Action.COMPLETE:
-        self.pot[self._next_player] = self._stakes[2]
+        self.pot[self._next_player] += self._stakes[2]
       elif action == Action.CALL:
         self.pot[self._next_player] = max(self.pot)
         self._num_raises = 0
