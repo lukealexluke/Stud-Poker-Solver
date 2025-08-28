@@ -170,8 +170,9 @@ class PolicyNetwork(nn.Module):
         x, mask = inputs
         for layer in self.hidden:
             x = self.activation(layer(x))
-        x = self.lastlayer(x)
+            
         x = self.normalization(x)
+        x = self.lastlayer(x)
         x = self.activation(x)
         x = self.out_layer(x)
         # Mask illegal actions
@@ -219,8 +220,9 @@ class RegretNetwork(nn.Module):
         x, mask = inputs
         for layer in self.hidden:
             x = self.activation(layer(x))
-        x = self.lastlayer(x)
+
         x = self.normalization(x)
+        x = self.lastlayer(x)
         x = self.activation(x)
         x = self.out_layer(x)
         # Mask illegal actions
@@ -266,8 +268,9 @@ class ValueNetwork(nn.Module):
 
         for layer in self.hidden:
             x = self.activation(layer(x))
-        x = self.lastlayer(x)
+
         x = self.normalization(x)
+        x = self.lastlayer(x)
         x = self.activation(x)
         x = self.out_layer(x)
         return x
