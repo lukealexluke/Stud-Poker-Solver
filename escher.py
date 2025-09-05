@@ -154,9 +154,9 @@ class PolicyNetwork(nn.Module):
                 self.hidden.append(nn.Linear(prev_units, units))
             prev_units = units
 
+        self.normalization = nn.LayerNorm(policy_network_layers[-1])
         self.lastlayer = nn.Linear(prev_units, policy_network_layers[-1])
         nn.init.kaiming_normal_(self.lastlayer.weight, nonlinearity='relu')
-        self.normalization = nn.LayerNorm(policy_network_layers[-1])
         self.out_layer = nn.Linear(policy_network_layers[-1], num_actions)
         self.softmax = nn.Softmax(dim=-1)
 
@@ -204,11 +204,10 @@ class RegretNetwork(nn.Module):
                 self.hidden.append(nn.Linear(prev_units, units))
             prev_units = units
 
+        self.normalization = nn.LayerNorm(regret_network_layers[-1])
         self.lastlayer = nn.Linear(prev_units, regret_network_layers[-1])
         nn.init.kaiming_normal_(self.lastlayer.weight, nonlinearity='relu')
-        self.normalization = nn.LayerNorm(regret_network_layers[-1])
         self.out_layer = nn.Linear(regret_network_layers[-1], num_actions)
-        self.softmax = nn.Softmax(dim=-1)
 
 
     def forward(self, inputs):
@@ -252,11 +251,10 @@ class ValueNetwork(nn.Module):
                 self.hidden.append(nn.Linear(prev_units, units))
             prev_units = units
 
+        self.normalization = nn.LayerNorm(val_network_layers[-1])
         self.lastlayer = nn.Linear(prev_units, val_network_layers[-1])
         nn.init.kaiming_normal_(self.lastlayer.weight, nonlinearity='relu')
-        self.normalization = nn.LayerNorm(val_network_layers[-1])
         self.out_layer = nn.Linear(val_network_layers[-1], 1)
-        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, inputs):
         # Applies Value Network
@@ -1294,10 +1292,10 @@ if __name__ == "__main__":
 
     iters = 1000
     num_traversals = 5000
-    num_val_fn_traversals = 2500
-    regret_train_steps = 2500
-    val_train_steps = 1000
-    policy_net_train_steps = 2500
+    num_val_fn_traversals = 5000
+    regret_train_steps = 5000
+    val_train_steps = 5000
+    policy_net_train_steps = 10_000
     batch_size_regret = 2048
     batch_size_val = 2048
     batch_size_pol = 2048
@@ -1319,10 +1317,10 @@ if __name__ == "__main__":
 
         val_expl = 0.01, # apparently this parameter does a lot
 
-        policy_network_layers=(64,64,64),
-        regret_network_layers=(64,64,64),
-        value_network_layers=(64,64,64),
-        memory_capacity=100000, # smaller buffer capacity?
+        policy_network_layers=(512,512,512),
+        regret_network_layers=(512,512,512),
+        value_network_layers=(512,512,512),
+        memory_capacity=3_000_000, # smaller buffer capacity?
     )
     regret, pol_loss, convs, nodes, value_loss = deep_cfr_solver.solve(save_path_convs=save_path)
 

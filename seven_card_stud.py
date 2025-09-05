@@ -54,11 +54,16 @@ def best_hand(hands):
     return 0
   elif ev.evaluate(tf_cards_0) < ev.evaluate(tf_cards_1):
     return 1
-  else: # same rank, go to suits for tiebreaker (three cards only)
+  elif len(hands) == 1: # same rank, go to suits for tiebreaker (three cards only)
     if max(hands[0]) > max(hands[1]):
       return 0
     else:
       return 1
+  elif len(hands) == 7: # showdown
+    return 2 # hands are tied on seventh street, split pot
+  else:
+    return 0 # if upcards are tied on 4th-7th, player to act always defaults to the player left of the dealer (which in this case is p0)
+
 
 class Action(enum.IntEnum):
   BRING_IN = 0
@@ -90,8 +95,8 @@ _GAME_INFO = pyspiel.GameInfo(
     num_distinct_actions=len(Action),
     max_chance_outcomes=len(_DECK),
     num_players=_NUM_PLAYERS,
-    min_utility=-320,
-    max_utility=320,
+    min_utility=-265,
+    max_utility=265,
     utility_sum=0.0,
     max_game_length=31)  # complete doesnt count as a raise, but there are a maximum of four raises allowed per round of betting
 
@@ -279,8 +284,10 @@ class StudPokerState(pyspiel.State):
       return [-winnings, winnings]
     elif best_hand(self.cards) == 0:
       return [winnings, -winnings]
-    else:
+    elif best_hand(self.cards) == 1:
       return [-winnings, winnings]
+    else:
+      return [0., 0.] # if hands are tied on seventh street (best_hand == 2)
     
   def pick_array(self):
     if len(self.private_cards[1] + self.public_cards[1]) == 3:
