@@ -13,18 +13,8 @@
 # limitations under the License.
 
 # Lint as python3
-"""Kuhn Poker implemented in Python.
-
-This is a simple demonstration of implementing a game in Python, featuring
-chance and imperfect information.
-
-Python games are significantly slower than C++, but it may still be suitable
-for prototyping or for small games.
-
-It is possible to run C++ algorithms on Python implemented games, This is likely
-to have good performance if the algorithm simply extracts a game tree and then
-works with that. It is likely to be poor if the algorithm relies on processing
-and updating states as it goes, e.g. MCTS.
+"""
+Seven Card Stud implemented in Python.
 """
 
 import enum
@@ -416,16 +406,16 @@ class StudPokerObserver:
     if "pot_contribution" in self.dict:
       pieces.append(f"pot[{int(state.pot[0])} {int(state.pot[1])}]")
 
-    if "third_street" in self.dict and state.third_street:
-      pieces.append("".join("pb"[b] for b in state.third_street))
-    if "fourth_street" in self.dict and state.fourth_street:
-      pieces.append("".join("pb"[b] for b in state.fourth_street))
-    if "fifth_street" in self.dict and state.fifth_street:
-      pieces.append("".join("pb"[b] for b in state.fifth_street))
-    if "sixth_street" in self.dict and state.sixth_street:
-      pieces.append("".join("pb"[b] for b in state.sixth_street))
-    if "seventh_street" in self.dict and state.seventh_street:
-      pieces.append("".join("pb"[b] for b in state.seventh_street))
+    if "third_street" in self.dict and state._third_street_sequence:
+      pieces.append("".join("pb"[b] for b in state._third_street_sequence))
+    if "fourth_street" in self.dict and state._fourth_street_sequence:
+      pieces.append("".join("pb"[b] for b in state._fourth_street_sequence))
+    if "fifth_street" in self.dict and state._fifth_street_sequence:
+      pieces.append("".join("pb"[b] for b in state._fifth_street_sequence))
+    if "sixth_street" in self.dict and state._sixth_street_sequence:
+      pieces.append("".join("pb"[b] for b in state._sixth_street_sequence))
+    if "seventh_street" in self.dict and state._seventh_street_sequence:
+      pieces.append("".join("pb"[b] for b in state._seventh_street_sequence))
 
     return " ".join(str(p) for p in pieces)
 

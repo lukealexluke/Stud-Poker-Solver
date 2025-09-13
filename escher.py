@@ -1276,8 +1276,7 @@ class ESCHER(policy.Policy):
         
 
 if __name__ == "__main__":
-    # Quick example how to run on Kuhn
-    # Hyperparameters not tuned
+
     print("STARTED:")
     if torch.cuda.is_available():
         train_device = 'cuda'
