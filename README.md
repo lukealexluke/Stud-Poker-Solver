@@ -6,7 +6,7 @@ Code for a Seven-card stud poker solver. This is a Poker Solver based on the [ES
 There is the algorithm, "escher.py", which generates policies, and there is a visualization tool "visualization.py" which creates range charts where you can view probability distributions for a range of hands. I've also attached the game environment "seven_card_stud.py" which should be complacent with the rest of the OpenSpiel library.
 
 _This section is an archive of my notes, my thoughts, etc.. Scroll to the bottom for some example ranges I've generated_<br>
-_See HOWTO.md for setup instructions._
+_See [HOWTO.md](HOWTO.md) for setup instructions._
 
 ## My Questions Going In
 When starting this project I had a few questions going in that I wanted to try to resolve, and see how the answers compared to what the current consensus of professional Stud play looked like:
